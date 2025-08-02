@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COG DG ROLLCALL - Scan Attendance</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; text-align: center; padding: 30px; }
+    h1 { font-size: 24px; margin-bottom: 20px; }
+    input, select { display: block; margin: 10px auto; padding: 10px; width: 80%; border-radius: 8px; border: none; }
+    button { padding: 10px 20px; background-color: #ffb07c; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    button:hover { background-color: #ffa366; }
+  </style>
+</head>
+<body>
+  <h1>Attendance Check-In</h1>
+  <input type="text" id="name" placeholder="Enter your name" />
+  <input type="text" id="ministry" placeholder="Enter your ministry" />
+  <select id="department">
+    <option value="">Select Department</option>
+    <option value="Worship">Worship</option>
+    <option value="Outreach">Outreach</option>
+    <option value="Relationship">Relationship</option>
+    <option value="Discipleship">Discipleship</option>
+    <option value="Administration">Administration</option>
+  </select>
+  <button onclick="submitAttendance()">Submit Attendance</button>
+
+  <script>
+    let logs = JSON.parse(localStorage.getItem('logs'));
+    if (!Array.isArray(logs)) logs = [];
+
+    function saveLogs() { localStorage.setItem('logs', JSON.stringify(logs)); }
+
+    function hasScannedToday() {
+      const lastScan = localStorage.getItem('lastScanDate');
+      const today = new Date().toDateString();
+      return lastScan === today;
+    }
+
+    function setScannedToday() {
+      const today = new Date().toDateString();
+      localStorage.setItem('lastScanDate', today);
+    }
+
+    function submitAttendance() {
+      if (hasScannedToday()) {
+        alert('You have already scanned today. Only one scan per day is allowed on this device.');
+        return;
+      }
+
+      const name = document.getElementById('name').value.trim();
+      const ministry = document.getElementById('ministry').value.trim();
+      const department = document.getElementById('department').value;
+
+      if (!name || !ministry || !department) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      const timestamp = new Date().toISOString();
+      logs.push({ name, ministry, department, timestamp });
+      saveLogs();
+      setScannedToday();
+      alert(`Attendance recorded for ${name}`);
+      document.getElementById('name').value = '';
+      document.getElementById('ministry').value = '';
+      document.getElementById('department').selectedIndex = 0;
+    }
+  </script>
+</body>
+</html>
