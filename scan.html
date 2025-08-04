@@ -26,26 +26,36 @@
   </select>
   <button onclick="submitAttendance()">Submit Attendance</button>
 
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
-    let logs = JSON.parse(localStorage.getItem('logs'));
-    if (!Array.isArray(logs)) logs = [];
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbIAgvTK8UYGhGBUZZsSZWkB7Aznutewc",
+      authDomain: "cog-rollcall.firebaseapp.com",
+      projectId: "cog-rollcall",
+      storageBucket: "cog-rollcall.firebasestorage.app",
+      messagingSenderId: "267065456471",
+      appId: "1:267065456471:web:b56b8b7f6802f94afab012"
+    };
 
-    function saveLogs() { localStorage.setItem('logs', JSON.stringify(logs)); }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 
+  <script>
     function hasScannedToday() {
       const lastScan = localStorage.getItem('lastScanDate');
-      const today = new Date().toDateString();
-      return lastScan === today;
+      return lastScan === new Date().toDateString();
     }
 
     function setScannedToday() {
-      const today = new Date().toDateString();
-      localStorage.setItem('lastScanDate', today);
+      localStorage.setItem('lastScanDate', new Date().toDateString());
     }
 
-    function submitAttendance() {
+    async function submitAttendance() {
       if (hasScannedToday()) {
-        alert('You have already scanned today. Only one scan per day is allowed on this device.');
+        alert('You have already scanned today.');
         return;
       }
 
@@ -58,9 +68,13 @@
         return;
       }
 
-      const timestamp = new Date().toISOString();
-      logs.push({ name, ministry, department, timestamp });
-      saveLogs();
+      await db.collection('attendance').add({
+        name,
+        ministry,
+        department,
+        timestamp: new Date().toISOString()
+      });
+
       setScannedToday();
       alert(`Attendance recorded for ${name}`);
       document.getElementById('name').value = '';
