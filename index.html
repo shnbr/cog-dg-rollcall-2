@@ -206,11 +206,13 @@
     async function loadMembers() {
       const list = document.getElementById('memberList');
       list.innerHTML = '';
+
       const snapshot = await db.collection('members').get();
       snapshot.forEach(doc => {
         const m = doc.data();
         const li = document.createElement('li');
-        li.innerHTML = `<span>${m.firstName} ${m.lastName} (${m.ministry}) <span class="badge badge-${m.department.toLowerCase()}">${m.department}</span></span>
+        li.innerHTML = `<span>${m.firstName || ''} ${m.lastName || ''} (${m.ministry || ''}) 
+          <span class="badge badge-${(m.department || '').toLowerCase()}">${m.department || ''}</span></span>
           <span>
             <button onclick="editMember('${doc.id}', '${m.firstName}', '${m.lastName}', '${m.ministry}', '${m.department}')">✏️</button>
             <button onclick="deleteMember('${doc.id}')">🗑️</button>
