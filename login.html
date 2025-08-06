@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login - COG DG ROLLCALL</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .login-box { background: #003366; padding: 20px; border-radius: 8px; width: 300px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    .login-box h2 { text-align: center; }
+    .login-box input { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 5px; }
+    .btn { width: 100%; padding: 10px; margin-top: 10px; background-color: #ffb07c; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    .btn:hover { background-color: #ffa366; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Admin Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn" class="btn">Login</button>
+    <p id="errorMsg" style="color:red; text-align:center; font-size:14px;"></p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbIAgvTK8UYGhGBUZZsSZWkB7Aznutewc",
+      authDomain: "cog-rollcall.firebaseapp.com",
+      projectId: "cog-rollcall",
+      storageBucket: "cog-rollcall.firebasestorage.app",
+      messagingSenderId: "267065456471",
+      appId: "1:267065456471:web:b56b8b7f6802f94afab012"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        window.location.href = "index.html"; // redirect to admin
+      } catch (error) {
+        document.getElementById('errorMsg').textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
