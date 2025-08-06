@@ -57,15 +57,15 @@
 <body>
   <header>
     <h1>COG DG ROLLCALL - Admin</h1>
-    <span class="menu-toggle" onclick="toggleMenu()">☰</span>
+    <span id="menuToggle" class="menu-toggle">☰</span>
   </header>
   <nav id="sidebar">
     <ul>
-      <li onclick="showSection('register')">Register Member</li>
-      <li onclick="showSection('manage')">Manage Members</li>
-      <li onclick="showSection('manual')">Manual Attendance</li>
-      <li onclick="showSection('generate')">Generate QR</li>
-      <li onclick="showSection('logs')">View Logs</li>
+      <li data-section="register">Register Member</li>
+      <li data-section="manage">Manage Members</li>
+      <li data-section="manual">Manual Attendance</li>
+      <li data-section="generate">Generate QR</li>
+      <li data-section="logs">View Logs</li>
     </ul>
   </nav>
   <main>
@@ -84,7 +84,7 @@
           <option value="Discipleship">Discipleship</option>
           <option value="Administration">Administration</option>
         </select>
-        <button class="btn" onclick="addMember()">Add Member</button>
+        <button id="addMemberBtn" class="btn">Add Member</button>
       </div>
     </section>
 
@@ -109,7 +109,7 @@
           <option value="Discipleship">Discipleship</option>
           <option value="Administration">Administration</option>
         </select>
-        <button class="btn" onclick="manualAttendance()">Submit Attendance</button>
+        <button id="manualAttendanceBtn" class="btn">Submit Attendance</button>
       </div>
     </section>
 
@@ -117,7 +117,7 @@
     <section id="generate" style="display:none;">
       <h2>Generate QR for Attendance</h2>
       <div id="qrcode"></div>
-      <button class="btn" onclick="generateUniversalQR()">Generate QR</button>
+      <button id="generateQRBtn" class="btn">Generate QR</button>
     </section>
 
     <!-- Logs Section -->
@@ -133,7 +133,7 @@
           <option value="Discipleship">Discipleship</option>
           <option value="Administration">Administration</option>
         </select>
-        <button class="btn" onclick="renderLogs()">Apply</button>
+        <button id="filterLogsBtn" class="btn">Apply</button>
       </div>
       <table id="logsTable">
         <thead>
@@ -162,10 +162,10 @@
   </script>
 
   <script>
+    // Navigation
     function toggleMenu() {
       document.getElementById('sidebar').classList.toggle('active');
     }
-
     function showSection(id) {
       document.querySelectorAll('main section').forEach(s => s.style.display = 'none');
       document.getElementById(id).style.display = 'block';
@@ -174,6 +174,7 @@
       if (id === 'logs') renderLogs();
     }
 
+    // CRUD Functions
     async function addMember() {
       const firstName = document.getElementById('memberFirstName').value.trim();
       const lastName = document.getElementById('memberLastName').value.trim();
@@ -186,10 +187,7 @@
       }
 
       await db.collection('members').add({
-        firstName,
-        lastName,
-        ministry,
-        department,
+        firstName, lastName, ministry, department,
         searchKey: `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`
       });
 
@@ -213,52 +211,60 @@
         li.innerHTML = `<span>${m.firstName || ''} ${m.lastName || ''} (${m.ministry || ''}) 
           <span class="badge badge-${(m.department || '').toLowerCase()}">${m.department || ''}</span></span>
           <span>
-            <button onclick="editMember('${doc.id}', '${m.firstName}', '${m.lastName}', '${m.ministry}', '${m.department}')">✏️</button>
-            <button onclick="deleteMember('${doc.id}')">🗑️</button>
+            <button class="editBtn" data-id="${doc.id}" data-fn="${m.firstName}" data-ln="${m.lastName}" data-min="${m.ministry}" data-dept="${m.department}">✏️</button>
+            <button class="deleteBtn" data-id="${doc.id}">🗑️</button>
           </span>`;
         list.appendChild(li);
       });
+
+      // Attach event listeners to buttons
+      document.querySelectorAll('.editBtn').forEach(btn =>
+        btn.addEventListener('click', () =>
+          editMember(btn.dataset.id, btn.dataset.fn, btn.dataset.ln, btn.dataset.min, btn.dataset.dept)
+        )
+      );
+
+      document.querySelectorAll('.deleteBtn').forEach(btn =>
+        btn.addEventListener('click', () =>
+          deleteMember(btn.dataset.id)
+        )
+      );
     }
 
     function editMember(id, firstName, lastName, ministry, department) {
-      const listItems = document.querySelectorAll('#memberList li');
-      listItems.forEach(li => { li.innerHTML = ''; });
-
       const list = document.getElementById('memberList');
-      const editLi = document.createElement('li');
-      editLi.classList.add('edit-row');
-      editLi.innerHTML = `
-        <input type="text" id="editFirstName" value="${firstName}">
-        <input type="text" id="editLastName" value="${lastName}">
-        <input type="text" id="editMinistry" value="${ministry}">
-        <select id="editDept">
-          <option ${department==='Worship'?'selected':''}>Worship</option>
-          <option ${department==='Outreach'?'selected':''}>Outreach</option>
-          <option ${department==='Relationship'?'selected':''}>Relationship</option>
-          <option ${department==='Discipleship'?'selected':''}>Discipleship</option>
-          <option ${department==='Administration'?'selected':''}>Administration</option>
-        </select>
-        <button onclick="saveEdit('${id}')">Save</button>
-        <button onclick="loadMembers()">Cancel</button>
+      list.innerHTML = `
+        <li class="edit-row">
+          <input type="text" id="editFirstName" value="${firstName}">
+          <input type="text" id="editLastName" value="${lastName}">
+          <input type="text" id="editMinistry" value="${ministry}">
+          <select id="editDept">
+            <option ${department==='Worship'?'selected':''}>Worship</option>
+            <option ${department==='Outreach'?'selected':''}>Outreach</option>
+            <option ${department==='Relationship'?'selected':''}>Relationship</option>
+            <option ${department==='Discipleship'?'selected':''}>Discipleship</option>
+            <option ${department==='Administration'?'selected':''}>Administration</option>
+          </select>
+          <button id="saveEditBtn">Save</button>
+          <button id="cancelEditBtn">Cancel</button>
+        </li>
       `;
-      list.appendChild(editLi);
-    }
 
-    async function saveEdit(id) {
-      const firstName = document.getElementById('editFirstName').value.trim();
-      const lastName = document.getElementById('editLastName').value.trim();
-      const ministry = document.getElementById('editMinistry').value.trim();
-      const department = document.getElementById('editDept').value;
+      document.getElementById('saveEditBtn').addEventListener('click', async () => {
+        const newFN = document.getElementById('editFirstName').value.trim();
+        const newLN = document.getElementById('editLastName').value.trim();
+        const newMin = document.getElementById('editMinistry').value.trim();
+        const newDept = document.getElementById('editDept').value;
 
-      await db.collection('members').doc(id).update({
-        firstName,
-        lastName,
-        ministry,
-        department,
-        searchKey: `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`
+        await db.collection('members').doc(id).update({
+          firstName: newFN, lastName: newLN, ministry: newMin, department: newDept,
+          searchKey: `${newFN.toLowerCase()}|${newLN.toLowerCase()}|${newMin.toLowerCase()}|${newDept.toLowerCase()}`
+        });
+
+        loadMembers();
       });
 
-      loadMembers();
+      document.getElementById('cancelEditBtn').addEventListener('click', loadMembers);
     }
 
     async function deleteMember(id) {
@@ -280,9 +286,7 @@
       }
 
       const searchKey = `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`;
-      const memberSnapshot = await db.collection('members')
-        .where('searchKey', '==', searchKey)
-        .get();
+      const memberSnapshot = await db.collection('members').where('searchKey', '==', searchKey).get();
 
       if (memberSnapshot.empty) {
         alert('This member is not registered or information does not match.');
@@ -290,11 +294,7 @@
       }
 
       await db.collection('attendance').add({
-        firstName,
-        lastName,
-        ministry,
-        department,
-        timestamp: new Date().toISOString()
+        firstName, lastName, ministry, department, timestamp: new Date().toISOString()
       });
 
       alert(`Manual attendance recorded for ${firstName} ${lastName}`);
@@ -343,6 +343,20 @@
         }
       });
     }
+
+    // Attach event listeners after DOM load
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('menuToggle').addEventListener('click', toggleMenu);
+
+      document.querySelectorAll('nav ul li').forEach(li => {
+        li.addEventListener('click', () => showSection(li.dataset.section));
+      });
+
+      document.getElementById('addMemberBtn').addEventListener('click', addMember);
+      document.getElementById('manualAttendanceBtn').addEventListener('click', manualAttendance);
+      document.getElementById('generateQRBtn').addEventListener('click', generateUniversalQR);
+      document.getElementById('filterLogsBtn').addEventListener('click', renderLogs);
+    });
   </script>
 </body>
 </html>
