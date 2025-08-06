@@ -174,7 +174,6 @@
       if (id === 'logs') renderLogs();
     }
 
-    // Add Member
     async function addMember() {
       const firstName = document.getElementById('memberFirstName').value.trim();
       const lastName = document.getElementById('memberLastName').value.trim();
@@ -186,7 +185,7 @@
         return;
       }
 
-      await db.collection('members').add({ 
+      await db.collection('members').add({
         firstName,
         lastName,
         ministry,
@@ -199,10 +198,10 @@
       document.getElementById('memberLastName').value = '';
       document.getElementById('memberMinistry').value = '';
       document.getElementById('memberDepartment').selectedIndex = 0;
+
       loadMembers();
     }
 
-    // Load Members
     async function loadMembers() {
       const list = document.getElementById('memberList');
       list.innerHTML = '';
@@ -221,7 +220,6 @@
       });
     }
 
-    // Edit Member
     function editMember(id, firstName, lastName, ministry, department) {
       const listItems = document.querySelectorAll('#memberList li');
       listItems.forEach(li => { li.innerHTML = ''; });
@@ -246,14 +244,13 @@
       list.appendChild(editLi);
     }
 
-    // Save Edited Member
     async function saveEdit(id) {
       const firstName = document.getElementById('editFirstName').value.trim();
       const lastName = document.getElementById('editLastName').value.trim();
       const ministry = document.getElementById('editMinistry').value.trim();
       const department = document.getElementById('editDept').value;
 
-      await db.collection('members').doc(id).update({ 
+      await db.collection('members').doc(id).update({
         firstName,
         lastName,
         ministry,
@@ -264,7 +261,6 @@
       loadMembers();
     }
 
-    // Delete Member
     async function deleteMember(id) {
       if (confirm('Are you sure you want to delete this member?')) {
         await db.collection('members').doc(id).delete();
@@ -272,7 +268,6 @@
       }
     }
 
-    // Manual Attendance
     async function manualAttendance() {
       const firstName = document.getElementById('manualFirstName').value.trim();
       const lastName = document.getElementById('manualLastName').value.trim();
@@ -309,7 +304,6 @@
       document.getElementById('manualDepartment').selectedIndex = 0;
     }
 
-    // Generate QR
     function generateUniversalQR() {
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = '';
@@ -324,7 +318,6 @@
       });
     }
 
-    // Render Logs with Filters
     async function renderLogs() {
       const tbody = document.querySelector('#logsTable tbody');
       tbody.innerHTML = '';
