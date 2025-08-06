@@ -57,7 +57,10 @@
 <body>
   <header>
     <h1>COG DG ROLLCALL - Admin</h1>
-    <span id="menuToggle" class="menu-toggle">☰</span>
+    <div>
+      <button id="logoutBtn" style="background:#ffb07c; border:none; border-radius:5px; padding:5px 10px; cursor:pointer;">Logout</button>
+      <span id="menuToggle" class="menu-toggle">☰</span>
+    </div>
   </header>
   <nav id="sidebar">
     <ul>
@@ -147,6 +150,7 @@
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDbIAgvTK8UYGhGBUZZsSZWkB7Aznutewc",
@@ -156,11 +160,24 @@
       messagingSenderId: "267065456471",
       appId: "1:267065456471:web:b56b8b7f6802f94afab012"
     };
-
     firebase.initializeApp(firebaseConfig);
+
     const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Auth guard
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "login.html";
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      auth.signOut();
+    });
   </script>
 
+  <!-- Main App Logic -->
   <script>
     // Navigation
     function toggleMenu() {
@@ -174,7 +191,7 @@
       if (id === 'logs') renderLogs();
     }
 
-    // CRUD Functions
+    // Add Member
     async function addMember() {
       const firstName = document.getElementById('memberFirstName').value.trim();
       const lastName = document.getElementById('memberLastName').value.trim();
@@ -187,7 +204,10 @@
       }
 
       await db.collection('members').add({
-        firstName, lastName, ministry, department,
+        firstName,
+        lastName,
+        ministry,
+        department,
         searchKey: `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`
       });
 
@@ -196,10 +216,10 @@
       document.getElementById('memberLastName').value = '';
       document.getElementById('memberMinistry').value = '';
       document.getElementById('memberDepartment').selectedIndex = 0;
-
       loadMembers();
     }
 
+    // Load Members
     async function loadMembers() {
       const list = document.getElementById('memberList');
       list.innerHTML = '';
@@ -217,7 +237,7 @@
         list.appendChild(li);
       });
 
-      // Attach event listeners to buttons
+      // Edit/Delete events
       document.querySelectorAll('.editBtn').forEach(btn =>
         btn.addEventListener('click', () =>
           editMember(btn.dataset.id, btn.dataset.fn, btn.dataset.ln, btn.dataset.min, btn.dataset.dept)
@@ -257,7 +277,10 @@
         const newDept = document.getElementById('editDept').value;
 
         await db.collection('members').doc(id).update({
-          firstName: newFN, lastName: newLN, ministry: newMin, department: newDept,
+          firstName: newFN,
+          lastName: newLN,
+          ministry: newMin,
+          department: newDept,
           searchKey: `${newFN.toLowerCase()}|${newLN.toLowerCase()}|${newMin.toLowerCase()}|${newDept.toLowerCase()}`
         });
 
@@ -274,6 +297,7 @@
       }
     }
 
+    // Manual Attendance
     async function manualAttendance() {
       const firstName = document.getElementById('manualFirstName').value.trim();
       const lastName = document.getElementById('manualLastName').value.trim();
@@ -294,7 +318,11 @@
       }
 
       await db.collection('attendance').add({
-        firstName, lastName, ministry, department, timestamp: new Date().toISOString()
+        firstName,
+        lastName,
+        ministry,
+        department,
+        timestamp: new Date().toISOString()
       });
 
       alert(`Manual attendance recorded for ${firstName} ${lastName}`);
@@ -304,6 +332,7 @@
       document.getElementById('manualDepartment').selectedIndex = 0;
     }
 
+    // Generate QR
     function generateUniversalQR() {
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = '';
@@ -318,6 +347,7 @@
       });
     }
 
+    // Render Logs
     async function renderLogs() {
       const tbody = document.querySelector('#logsTable tbody');
       tbody.innerHTML = '';
@@ -344,7 +374,7 @@
       });
     }
 
-    // Attach event listeners after DOM load
+    // Attach Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('menuToggle').addEventListener('click', toggleMenu);
 
