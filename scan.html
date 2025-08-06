@@ -3,29 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>COG DG ROLLCALL - Scan Attendance</title>
+  <title>COG DG ROLLCALL - Attendance</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; text-align: center; padding: 30px; }
-    h1 { font-size: 24px; margin-bottom: 20px; }
-    input, select { display: block; margin: 10px auto; padding: 10px; width: 80%; border-radius: 8px; border: none; }
-    button { padding: 10px 20px; background-color: #ffb07c; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-    button:hover { background-color: #ffa366; }
+    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin:0; }
+    .form-box { background: #003366; padding: 20px; border-radius: 10px; width: 300px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    .form-box h2 { text-align: center; margin-bottom: 10px; }
+    .form-box input, .form-box select { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 5px; }
+    .btn { width: 100%; padding: 10px; margin-top: 10px; background-color: #ffb07c; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    .btn:hover { background-color: #ffa366; }
   </style>
 </head>
 <body>
-  <h1>Attendance Check-In</h1>
-  <input type="text" id="firstName" placeholder="First Name" />
-  <input type="text" id="lastName" placeholder="Last Name" />
-  <input type="text" id="ministry" placeholder="Ministry" />
-  <select id="department">
-    <option value="">Select Department</option>
-    <option value="Worship">Worship</option>
-    <option value="Outreach">Outreach</option>
-    <option value="Relationship">Relationship</option>
-    <option value="Discipleship">Discipleship</option>
-    <option value="Administration">Administration</option>
-  </select>
-  <button onclick="submitAttendance()">Submit Attendance</button>
+  <div class="form-box">
+    <h2>Attendance</h2>
+    <input type="text" id="firstName" placeholder="First Name" />
+    <input type="text" id="lastName" placeholder="Last Name" />
+    <input type="text" id="ministry" placeholder="Ministry" />
+    <select id="department">
+      <option value="">Select Department</option>
+      <option value="Worship">Worship</option>
+      <option value="Outreach">Outreach</option>
+      <option value="Relationship">Relationship</option>
+      <option value="Discipleship">Discipleship</option>
+      <option value="Administration">Administration</option>
+    </select>
+    <button id="submitBtn" class="btn">Submit Attendance</button>
+    <p id="message" style="text-align:center; margin-top:10px;"></p>
+  </div>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -39,45 +43,28 @@
       messagingSenderId: "267065456471",
       appId: "1:267065456471:web:b56b8b7f6802f94afab012"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-  </script>
 
-  <script>
-    function hasScannedToday() {
-      const lastScan = localStorage.getItem('lastScanDate');
-      return lastScan === new Date().toDateString();
-    }
+    const params = new URLSearchParams(window.location.search);
+    const attendanceDate = params.get('date');
 
-    function setScannedToday() {
-      localStorage.setItem('lastScanDate', new Date().toDateString());
-    }
-
-    async function submitAttendance() {
-      if (hasScannedToday()) {
-        alert('You have already scanned today.');
-        return;
-      }
-
+    document.getElementById('submitBtn').addEventListener('click', async () => {
       const firstName = document.getElementById('firstName').value.trim();
       const lastName = document.getElementById('lastName').value.trim();
       const ministry = document.getElementById('ministry').value.trim();
       const department = document.getElementById('department').value;
 
       if (!firstName || !lastName || !ministry || !department) {
-        alert('Please fill in all fields');
+        document.getElementById('message').textContent = "Please fill in all fields.";
         return;
       }
 
-      // Case-insensitive check using searchKey
       const searchKey = `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`;
-      const memberSnapshot = await db.collection('members')
-        .where('searchKey', '==', searchKey)
-        .get();
+      const memberSnapshot = await db.collection('members').where('searchKey', '==', searchKey).get();
 
       if (memberSnapshot.empty) {
-        alert('This member information does not match our records.');
+        document.getElementById('message').textContent = "Member not registered or info mismatch.";
         return;
       }
 
@@ -86,16 +73,16 @@
         lastName,
         ministry,
         department,
+        date: attendanceDate || new Date().toISOString().split('T')[0],
         timestamp: new Date().toISOString()
       });
 
-      setScannedToday();
-      alert(`Attendance recorded for ${firstName} ${lastName}`);
+      document.getElementById('message').textContent = `Attendance recorded for ${firstName} ${lastName}`;
       document.getElementById('firstName').value = '';
       document.getElementById('lastName').value = '';
       document.getElementById('ministry').value = '';
       document.getElementById('department').selectedIndex = 0;
-    }
+    });
   </script>
 </body>
 </html>
