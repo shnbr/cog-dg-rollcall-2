@@ -29,6 +29,29 @@
     #memberList li { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; background: #003366; padding: 5px; border-radius: 5px; }
     #memberList button { margin-left: 5px; cursor: pointer; }
     .edit-row input, .edit-row select { margin-right: 5px; }
+
+    /* Centered Forms */
+    .register-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #003366;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .register-container input,
+    .register-container select {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
@@ -40,6 +63,7 @@
     <ul>
       <li onclick="showSection('register')">Register Member</li>
       <li onclick="showSection('manage')">Manage Members</li>
+      <li onclick="showSection('manual')">Manual Attendance</li>
       <li onclick="showSection('generate')">Generate QR</li>
       <li onclick="showSection('logs')">View Logs</li>
     </ul>
@@ -47,24 +71,46 @@
   <main>
     <!-- Register Member Section -->
     <section id="register" style="display:none;">
-      <h2>Register Member</h2>
-      <input type="text" id="memberName" placeholder="Name" />
-      <input type="text" id="memberMinistry" placeholder="Ministry" />
-      <select id="memberDepartment">
-        <option value="">Select Department</option>
-        <option value="Worship">Worship</option>
-        <option value="Outreach">Outreach</option>
-        <option value="Relationship">Relationship</option>
-        <option value="Discipleship">Discipleship</option>
-        <option value="Administration">Administration</option>
-      </select>
-      <button class="btn" onclick="addMember()">Add Member</button>
+      <div class="register-container">
+        <h2>Register Member</h2>
+        <input type="text" id="memberFirstName" placeholder="First Name" />
+        <input type="text" id="memberLastName" placeholder="Last Name" />
+        <input type="text" id="memberMinistry" placeholder="Ministry" />
+        <select id="memberDepartment">
+          <option value="">Select Department</option>
+          <option value="Worship">Worship</option>
+          <option value="Outreach">Outreach</option>
+          <option value="Relationship">Relationship</option>
+          <option value="Discipleship">Discipleship</option>
+          <option value="Administration">Administration</option>
+        </select>
+        <button class="btn" onclick="addMember()">Add Member</button>
+      </div>
     </section>
 
     <!-- Manage Members Section -->
     <section id="manage" style="display:none;">
       <h2>Manage Members</h2>
       <ul id="memberList"></ul>
+    </section>
+
+    <!-- Manual Attendance Section -->
+    <section id="manual" style="display:none;">
+      <div class="register-container">
+        <h2>Manual Attendance Input</h2>
+        <input type="text" id="manualFirstName" placeholder="First Name" />
+        <input type="text" id="manualLastName" placeholder="Last Name" />
+        <input type="text" id="manualMinistry" placeholder="Ministry" />
+        <select id="manualDepartment">
+          <option value="">Select Department</option>
+          <option value="Worship">Worship</option>
+          <option value="Outreach">Outreach</option>
+          <option value="Relationship">Relationship</option>
+          <option value="Discipleship">Discipleship</option>
+          <option value="Administration">Administration</option>
+        </select>
+        <button class="btn" onclick="manualAttendance()">Submit Attendance</button>
+      </div>
     </section>
 
     <!-- Generate QR Section -->
@@ -77,6 +123,18 @@
     <!-- Logs Section -->
     <section id="logs" style="display:none;">
       <h2>Attendance Logs</h2>
+      <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" id="searchName" placeholder="Search by name..." style="flex: 1; padding: 8px; border-radius: 5px; border: none;">
+        <select id="filterDepartment" style="padding: 8px; border-radius: 5px; border: none;">
+          <option value="">All Departments</option>
+          <option value="Worship">Worship</option>
+          <option value="Outreach">Outreach</option>
+          <option value="Relationship">Relationship</option>
+          <option value="Discipleship">Discipleship</option>
+          <option value="Administration">Administration</option>
+        </select>
+        <button class="btn" onclick="renderLogs()">Apply</button>
+      </div>
       <table id="logsTable">
         <thead>
           <tr><th>Name</th><th>Ministry</th><th>Department</th><th>Timestamp</th></tr>
@@ -86,7 +144,7 @@
     </section>
   </main>
 
-  <!-- Firebase Scripts -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
@@ -116,26 +174,35 @@
       if (id === 'logs') renderLogs();
     }
 
-    // Add Member to Firebase
+    // Add Member
     async function addMember() {
-      const name = document.getElementById('memberName').value.trim();
+      const firstName = document.getElementById('memberFirstName').value.trim();
+      const lastName = document.getElementById('memberLastName').value.trim();
       const ministry = document.getElementById('memberMinistry').value.trim();
       const department = document.getElementById('memberDepartment').value;
 
-      if (!name || !ministry || !department) {
+      if (!firstName || !lastName || !ministry || !department) {
         alert('Please fill in all fields');
         return;
       }
 
-      await db.collection('members').add({ name, ministry, department });
+      await db.collection('members').add({ 
+        firstName,
+        lastName,
+        ministry,
+        department,
+        searchKey: `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`
+      });
+
       alert('Member added successfully');
-      document.getElementById('memberName').value = '';
+      document.getElementById('memberFirstName').value = '';
+      document.getElementById('memberLastName').value = '';
       document.getElementById('memberMinistry').value = '';
       document.getElementById('memberDepartment').selectedIndex = 0;
       loadMembers();
     }
 
-    // Load Members from Firebase
+    // Load Members
     async function loadMembers() {
       const list = document.getElementById('memberList');
       list.innerHTML = '';
@@ -143,9 +210,9 @@
       snapshot.forEach(doc => {
         const m = doc.data();
         const li = document.createElement('li');
-        li.innerHTML = `<span>${m.name} (${m.ministry}) <span class="badge badge-${m.department.toLowerCase()}">${m.department}</span></span>
+        li.innerHTML = `<span>${m.firstName} ${m.lastName} (${m.ministry}) <span class="badge badge-${m.department.toLowerCase()}">${m.department}</span></span>
           <span>
-            <button onclick="editMember('${doc.id}', '${m.name}', '${m.ministry}', '${m.department}')">✏️</button>
+            <button onclick="editMember('${doc.id}', '${m.firstName}', '${m.lastName}', '${m.ministry}', '${m.department}')">✏️</button>
             <button onclick="deleteMember('${doc.id}')">🗑️</button>
           </span>`;
         list.appendChild(li);
@@ -153,17 +220,16 @@
     }
 
     // Edit Member
-    function editMember(id, name, ministry, department) {
+    function editMember(id, firstName, lastName, ministry, department) {
       const listItems = document.querySelectorAll('#memberList li');
-      listItems.forEach(li => {
-        li.innerHTML = '';
-      });
+      listItems.forEach(li => { li.innerHTML = ''; });
 
       const list = document.getElementById('memberList');
       const editLi = document.createElement('li');
       editLi.classList.add('edit-row');
       editLi.innerHTML = `
-        <input type="text" id="editName" value="${name}">
+        <input type="text" id="editFirstName" value="${firstName}">
+        <input type="text" id="editLastName" value="${lastName}">
         <input type="text" id="editMinistry" value="${ministry}">
         <select id="editDept">
           <option ${department==='Worship'?'selected':''}>Worship</option>
@@ -180,10 +246,19 @@
 
     // Save Edited Member
     async function saveEdit(id) {
-      const name = document.getElementById('editName').value.trim();
+      const firstName = document.getElementById('editFirstName').value.trim();
+      const lastName = document.getElementById('editLastName').value.trim();
       const ministry = document.getElementById('editMinistry').value.trim();
       const department = document.getElementById('editDept').value;
-      await db.collection('members').doc(id).update({ name, ministry, department });
+
+      await db.collection('members').doc(id).update({ 
+        firstName,
+        lastName,
+        ministry,
+        department,
+        searchKey: `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`
+      });
+
       loadMembers();
     }
 
@@ -193,6 +268,43 @@
         await db.collection('members').doc(id).delete();
         loadMembers();
       }
+    }
+
+    // Manual Attendance
+    async function manualAttendance() {
+      const firstName = document.getElementById('manualFirstName').value.trim();
+      const lastName = document.getElementById('manualLastName').value.trim();
+      const ministry = document.getElementById('manualMinistry').value.trim();
+      const department = document.getElementById('manualDepartment').value;
+
+      if (!firstName || !lastName || !ministry || !department) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      const searchKey = `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`;
+      const memberSnapshot = await db.collection('members')
+        .where('searchKey', '==', searchKey)
+        .get();
+
+      if (memberSnapshot.empty) {
+        alert('This member is not registered or information does not match.');
+        return;
+      }
+
+      await db.collection('attendance').add({
+        firstName,
+        lastName,
+        ministry,
+        department,
+        timestamp: new Date().toISOString()
+      });
+
+      alert(`Manual attendance recorded for ${firstName} ${lastName}`);
+      document.getElementById('manualFirstName').value = '';
+      document.getElementById('manualLastName').value = '';
+      document.getElementById('manualMinistry').value = '';
+      document.getElementById('manualDepartment').selectedIndex = 0;
     }
 
     // Generate QR
@@ -210,20 +322,30 @@
       });
     }
 
-    // Render Attendance Logs
+    // Render Logs with Filters
     async function renderLogs() {
       const tbody = document.querySelector('#logsTable tbody');
       tbody.innerHTML = '';
 
-      const snapshot = await db.collection('attendance').orderBy('timestamp', 'desc').get();
+      const searchValue = document.getElementById('searchName').value.trim().toLowerCase();
+      const filterDept = document.getElementById('filterDepartment').value;
+
+      let snapshot = await db.collection('attendance').orderBy('timestamp', 'desc').get();
+
       snapshot.forEach(doc => {
         const log = doc.data();
-        tbody.innerHTML += `<tr>
-          <td>${log.name}</td>
-          <td>${log.ministry}</td>
-          <td><span class="badge badge-${log.department.toLowerCase()}">${log.department}</span></td>
-          <td>${new Date(log.timestamp).toLocaleString()}</td>
-        </tr>`;
+        const fullName = `${log.firstName} ${log.lastName}`.toLowerCase();
+        const matchesName = !searchValue || fullName.includes(searchValue);
+        const matchesDept = !filterDept || log.department === filterDept;
+
+        if (matchesName && matchesDept) {
+          tbody.innerHTML += `<tr>
+            <td>${log.firstName} ${log.lastName}</td>
+            <td>${log.ministry}</td>
+            <td><span class="badge badge-${log.department.toLowerCase()}">${log.department}</span></td>
+            <td>${new Date(log.timestamp).toLocaleString()}</td>
+          </tr>`;
+        }
       });
     }
   </script>
