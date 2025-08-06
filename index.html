@@ -179,7 +179,6 @@
 
   <!-- Main App Logic -->
   <script>
-    // Navigation
     function toggleMenu() {
       document.getElementById('sidebar').classList.toggle('active');
     }
@@ -237,7 +236,6 @@
         list.appendChild(li);
       });
 
-      // Edit/Delete events
       document.querySelectorAll('.editBtn').forEach(btn =>
         btn.addEventListener('click', () =>
           editMember(btn.dataset.id, btn.dataset.fn, btn.dataset.ln, btn.dataset.min, btn.dataset.dept)
@@ -322,6 +320,7 @@
         lastName,
         ministry,
         department,
+        date: new Date().toISOString().split('T')[0],
         timestamp: new Date().toISOString()
       });
 
@@ -332,16 +331,19 @@
       document.getElementById('manualDepartment').selectedIndex = 0;
     }
 
-    // Generate QR
+    // Generate Daily QR
     function generateUniversalQR() {
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = '';
-      const url = `${window.location.origin}${window.location.pathname.replace('index.html','')}scan.html`;
+
+      const today = new Date().toISOString().split('T')[0];
+      const url = `${window.location.origin}${window.location.pathname.replace('index.html','')}scan.html?date=${today}`;
+
       QRCode.toCanvas(url, { width: 200 }, (error, canvas) => {
         if (!error) {
           qrContainer.appendChild(canvas);
           const label = document.createElement('p');
-          label.textContent = "Scan this QR to record attendance";
+          label.textContent = `Scan this QR to record attendance for ${today}`;
           qrContainer.appendChild(label);
         }
       });
@@ -368,13 +370,12 @@
             <td>${log.firstName} ${log.lastName}</td>
             <td>${log.ministry}</td>
             <td><span class="badge badge-${log.department.toLowerCase()}">${log.department}</span></td>
-            <td>${new Date(log.timestamp).toLocaleString()}</td>
+            <td>${log.date || new Date(log.timestamp).toLocaleDateString()} ${new Date(log.timestamp).toLocaleTimeString()}</td>
           </tr>`;
         }
       });
     }
 
-    // Attach Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('menuToggle').addEventListener('click', toggleMenu);
 
