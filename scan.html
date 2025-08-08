@@ -1,24 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>COG DG ROLLCALL - Attendance</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Scan</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin:0; }
-    .form-box { background: #003366; padding: 20px; border-radius: 10px; width: 300px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-    .form-box h2 { text-align: center; margin-bottom: 10px; }
-    .form-box input, .form-box select { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 5px; }
-    .btn { width: 100%; padding: 10px; margin-top: 10px; background-color: #ffb07c; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-    .btn:hover { background-color: #ffa366; }
+    body { font-family: Arial, sans-serif; background-color: #001f3f; color: #fff; text-align: center; padding: 20px; }
+    h1 { font-size: 24px; }
+    .container {
+      background: #003366;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background-color: #ffb07c;
+      color: #001f3f;
+      border: none;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { background-color: #ffa366; }
+    .error { color: #ff6666; font-weight: bold; margin-bottom: 15px; }
   </style>
 </head>
 <body>
-  <div class="form-box">
-    <h2>Attendance</h2>
-    <input type="text" id="firstName" placeholder="First Name" />
-    <input type="text" id="lastName" placeholder="Last Name" />
-    <input type="text" id="ministry" placeholder="Ministry" />
+  <h1>Attendance Registration</h1>
+  <div class="container">
+    <p id="dateWarning" class="error" style="display:none;"></p>
+
+    <input type="text" id="firstName" placeholder="First Name">
+    <input type="text" id="lastName" placeholder="Last Name">
+    <input type="text" id="ministry" placeholder="Ministry">
     <select id="department">
       <option value="">Select Department</option>
       <option value="Worship">Worship</option>
@@ -27,8 +52,7 @@
       <option value="Discipleship">Discipleship</option>
       <option value="Administration">Administration</option>
     </select>
-    <button id="submitBtn" class="btn">Submit Attendance</button>
-    <p id="message" style="text-align:center; margin-top:10px;"></p>
+    <button id="submitAttendance">Submit Attendance</button>
   </div>
 
   <!-- Firebase -->
@@ -46,25 +70,49 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const params = new URLSearchParams(window.location.search);
-    const attendanceDate = params.get('date');
+    // Extract QR date from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const qrDate = urlParams.get('date');
+    const today = new Date().toISOString().split('T')[0];
 
-    document.getElementById('submitBtn').addEventListener('click', async () => {
+    // Check if QR code date matches today's date
+    if (!qrDate || qrDate !== today) {
+      document.getElementById('dateWarning').textContent =
+        "⚠ This QR code is not valid for today. Please scan today's QR.";
+      document.getElementById('dateWarning').style.display = 'block';
+      document.getElementById('submitAttendance').disabled = true;
+    }
+
+    // Submit Attendance
+    document.getElementById('submitAttendance').addEventListener('click', async () => {
       const firstName = document.getElementById('firstName').value.trim();
       const lastName = document.getElementById('lastName').value.trim();
       const ministry = document.getElementById('ministry').value.trim();
       const department = document.getElementById('department').value;
 
       if (!firstName || !lastName || !ministry || !department) {
-        document.getElementById('message').textContent = "Please fill in all fields.";
+        alert("Please fill in all fields.");
         return;
       }
 
+      // Case-insensitive check against registered members
       const searchKey = `${firstName.toLowerCase()}|${lastName.toLowerCase()}|${ministry.toLowerCase()}|${department.toLowerCase()}`;
       const memberSnapshot = await db.collection('members').where('searchKey', '==', searchKey).get();
 
       if (memberSnapshot.empty) {
-        document.getElementById('message').textContent = "Member not registered or info mismatch.";
+        alert("This member is not registered or the information does not match our records.");
+        return;
+      }
+
+      // Prevent duplicate attendance for the same day
+      const existingSnapshot = await db.collection('attendance')
+        .where('firstName', '==', firstName)
+        .where('lastName', '==', lastName)
+        .where('date', '==', today)
+        .get();
+
+      if (!existingSnapshot.empty) {
+        alert("You have already recorded your attendance today.");
         return;
       }
 
@@ -73,11 +121,11 @@
         lastName,
         ministry,
         department,
-        date: attendanceDate || new Date().toISOString().split('T')[0],
+        date: today,
         timestamp: new Date().toISOString()
       });
 
-      document.getElementById('message').textContent = `Attendance recorded for ${firstName} ${lastName}`;
+      alert(`Attendance recorded for ${firstName} ${lastName}`);
       document.getElementById('firstName').value = '';
       document.getElementById('lastName').value = '';
       document.getElementById('ministry').value = '';
